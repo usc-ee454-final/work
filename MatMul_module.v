@@ -235,7 +235,7 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 
 						// This is not correct!!!
 
-						weight_mat[i][j] = weight_mat[i][j] - LEARNING_RATE * ((activation_func[temp[i]] * current_vec[j]) >>> 7);
+						weight_mat[i][j] = weight_mat[i][j];// - LEARNING_RATE * ((activation_func[temp[i]] * current_vec[j]) >>> 7);
 
 					end //endfor
 				end //endfor
