@@ -40,12 +40,10 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 	// This reg holds the weights from this layer's nodes to the next layer's nodes.
 	reg signed [6:0] weight_mat [8:0][8:0];
 
-	//TODO: should this be a reg or is there a better DS for a LUT
 	reg signed [6:0] activation_func [127:0];
 	reg signed [6:0] activation_func_prime [127:0];
 
 	//The calculated z_output values
-	reg [15:0] z_out [8:0];
 	reg [6:0] f_prime [8:0];
 
 	integer x,y;
@@ -63,10 +61,10 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 			//initialize output vectors to 0	
 			valid <= 0;
 
-			//TODO initialize LUT values and z_out and f_prime
 			for (x = 0; x < 128; x = x + 1)
 			begin
-				//TODO: fill in LUTs
+				// fill in LUTs
+				// TODO: sigmoid calculations
 				activation_func[x] = x;
 				activation_func_prime[x] = 1;
 
@@ -81,7 +79,7 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 					end
 					else if (x+y %3 == 1)
 					begin		
-						weight_mat[x][y] = 7'b1000011;
+						weight_mat[x][y] = 7'b1000010;
 					end
 					else 
 					begin
@@ -212,15 +210,14 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 							// Clamp the values to max (??)
 							calc_int = calc_int * f_prime[i] >>> 7;
 							
-								if (calc_int > 127)
-								begin
-									calc_int = 127;
-								end
-								if (calc_int < -127)
-								begin
-									calc_int = -127;
-								end
-							
+							if (calc_int > 127)
+							begin
+								calc_int = 127;
+							end
+							if (calc_int < -127)
+							begin
+								calc_int = -127;
+							end
 
 							out_vector[i] = calc_int;
 						end
@@ -232,10 +229,11 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 			begin
 				for (i = 0; i < WIDTH; i = i+1) begin
 					for (j=0; j < WIDTH; j = j + 1) begin
-
-						// This is not correct!!!
-
-						weight_mat[i][j] = weight_mat[i][j];// - LEARNING_RATE * ((activation_func[temp[i]] * current_vec[j]) >>> 7);
+						// current_vec := delta from
+						// next layer
+						// temp := input to activation
+						// func for node i	
+						weight_mat[i][j] = weight_mat[i][j] - LEARNING_RATE * ((activation_func[temp[j][6:0]] * current_vec[i]) >>> 7);
 
 					end //endfor
 				end //endfor
