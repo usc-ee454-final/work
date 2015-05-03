@@ -1,9 +1,10 @@
-module MatMul_Module(clk, packed_7_9_in, mult, ack, valid, packed_7_9_out, reset);
+module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_out, reset, output_layer);
     
-	parameter IDLE=0, MULT=1, SENDMSG=2, WIDTH = 9, MAX_NUM=255, PK_WIDTH=7, PK_LEN=9;
-	input clk, reset, mult;
+	parameter IDLE=0, FORWARD=1, SENDMSG_FORWARD=2, CALC_F_PRIME=3, BACKPROP_WAITING = 4, SENDMSG_BACK = 5, BACKPROP_CALC = 6, UPDATE_WEIGHTS = 7, WIDTH = 9, MAX_NUM=255, PK_WIDTH=7, PK_LEN=9, LEARNING_RATE = 1;
+	input clk, reset, mult, backprop;
 	input ack;
    	input [62:0] packed_7_9_in; //7x9
+	input output_layer;
 
 	output [62:0] packed_7_9_out;	
 	output reg valid;
@@ -11,7 +12,7 @@ module MatMul_Module(clk, packed_7_9_in, mult, ack, valid, packed_7_9_out, reset
 	
 	//Internal in/out vectors (unpacked)
 	wire [6:0] in_vector [8:0];
-	reg [6:0] out_vector [8:0];
+	reg signed [6:0] out_vector [8:0];
 
 	//pack
 	genvar pk_idx;
@@ -31,13 +32,28 @@ module MatMul_Module(clk, packed_7_9_in, mult, ack, valid, packed_7_9_out, reset
 		end 
 	endgenerate
 
-	reg [1:0] state;
+	reg [4:0] state;
 
 	//Vector is 7bits x input_size
-	reg [6:0] current_vec [8:0];
-	reg [6:0] weight_mat [8:0][8:0];
-	reg [15:0] temp;
+	reg signed [6:0] current_vec [8:0];
+
+	// This reg holds the weights from this layer's nodes to the next layer's nodes.
+	reg signed [6:0] weight_mat [8:0][8:0];
+
+	//TODO: should this be a reg or is there a better DS for a LUT
+	reg signed [6:0] activation_func [127:0];
+	reg signed [6:0] activation_func_prime [127:0];
+
+	//The calculated z_output values
+	reg [15:0] z_out [8:0];
+	reg [6:0] f_prime [8:0];
+
 	integer x,y;
+
+	reg [4:0] i, j;
+	
+	reg signed [15:0] temp[8:0];	
+	reg signed [15:0] calc_int;
 
 	always @(posedge clk)
 	begin
@@ -46,14 +62,32 @@ module MatMul_Module(clk, packed_7_9_in, mult, ack, valid, packed_7_9_out, reset
 			state <= IDLE;	
 			//initialize output vectors to 0	
 			valid <= 0;
+
+			//TODO initialize LUT values and z_out and f_prime
+			for (x = 0; x < 128; x = x + 1)
+			begin
+				//TODO: fill in LUTs
+				activation_func[x] = x;
+				activation_func_prime[x] = 1;
+
+			end	
 			for (x = 0; x < 9; x = x + 1)
 			begin
 				for (y=0; y < 9; y = y + 1)
 				begin
-				if (x==y)
-				weight_mat[x][y] = 7'b0000001;
-				else
-				weight_mat[x][y] = 7'b0000000;
+					if (x + y % 3 == 0)
+					begin		
+						weight_mat[x][y] = 7'b0000101;
+					end
+					else if (x+y %3 == 1)
+					begin		
+						weight_mat[x][y] = 7'b1000011;
+					end
+					else 
+					begin
+						weight_mat[x][y] = 7'b0000001;
+					end
+					
 				end
 			end	
 		end
@@ -63,7 +97,7 @@ module MatMul_Module(clk, packed_7_9_in, mult, ack, valid, packed_7_9_out, reset
 			begin
 				if (mult)
 				begin
-					state <= MULT;
+					state <= FORWARD;
 					current_vec[0] <= in_vector[0];	
 					current_vec[1] <= in_vector[1];	
 					current_vec[2] <= in_vector[2];	
@@ -76,8 +110,146 @@ module MatMul_Module(clk, packed_7_9_in, mult, ack, valid, packed_7_9_out, reset
 						
 				end
 			end
-			if (state == SENDMSG)
+
+			if (state == FORWARD)
 			begin
+				state <= SENDMSG_FORWARD;
+				for (i = 0; i < WIDTH; i = i+1) begin
+
+					//Compute this column of the matrix
+					//For each value of the weight matrix, consider if it is positive or negative
+
+					temp[i] = 0;
+					for (j = 0; j < WIDTH; j = j + 1)
+						begin
+							temp[i] = temp[i] + ((weight_mat[i][j] * current_vec[j]) >>> 7 );
+						end
+
+					// Clamp the values to max
+					if (temp[i] > 127)
+					begin
+						temp[i] = 127;
+					end
+					if (temp[i] < -127)
+					begin
+						temp[i] = -127;
+					end
+
+					// Apply activation function (we use a LUT)
+					out_vector[i] = activation_func[temp[i]];
+
+				end	//endfor
+
+			end //end if
+			
+			if (state == SENDMSG_FORWARD)
+			begin
+				if (ack == 0)
+				begin
+					valid <= 1;
+				end
+				else //ack is true
+				begin
+					state <= CALC_F_PRIME;
+					valid <= 0;
+				end
+			end
+			
+			// In this state we calculate f', which will be used in the backpropagation algorithm
+			if (state == CALC_F_PRIME)
+			begin
+
+				for (i = 0; i < WIDTH; i = i+1) begin
+				begin
+					f_prime[i] <= activation_func_prime[temp[i]];
+				end
+
+				state <= BACKPROP_WAITING;		
+			end
+
+			if (state == BACKPROP_WAITING)
+			begin
+			
+				if (backprop) //then the backprop delta vector is ready
+				begin
+					state <= BACKPROP_CALC;
+					current_vec[0] <= in_vector[0];	
+					current_vec[1] <= in_vector[1];	
+					current_vec[2] <= in_vector[2];	
+					current_vec[3] <= in_vector[3];	
+					current_vec[4] <= in_vector[4];	
+					current_vec[5] <= in_vector[5];	
+					current_vec[6] <= in_vector[6];	
+					current_vec[7] <= in_vector[7];	
+					current_vec[8] <= in_vector[8];	
+				end
+			end
+
+			if (state == BACKPROP_CALC)
+			begin
+				
+					
+					if (output_layer == 1)		
+					begin	
+						//delta_i = -(y_i - a_i)*f'(z_i)
+						for (i = 0; i < WIDTH; i = i+1) begin
+
+							// current_vec := correct_value/y
+							// out_vector := a_i
+
+							out_vector[i] = ((out_vector[i] - current_vec[i]) * f_prime[i]) >>> 7;
+
+						end //endfor
+					end
+					else //not an output layer, so the current_vec is the delta vector from the next layer
+					begin
+						//delta_i = (weighted_sum)*f'(z_i)
+						//	  = W^T * delta
+						for (i = 0; i < WIDTH; i = i+1) begin
+							calc_int = 0;
+							for (j=0; j < WIDTH; j = j + 1)
+							begin 
+								calc_int = calc_int + ((weight_mat[i][j] * current_vec[j]) >>> 7);
+							end 
+
+							// Clamp the values to max (??)
+							calc_int = calc_int * f_prime[i] >>> 7;
+							
+								if (calc_int > 127)
+								begin
+									calc_int = 127;
+								end
+								if (calc_int < -127)
+								begin
+									calc_int = -127;
+								end
+							
+
+							out_vector[i] = calc_int;
+						end
+					end
+				state = UPDATE_WEIGHTS;
+			end
+	
+			if (state == UPDATE_WEIGHTS)
+			begin
+				for (i = 0; i < WIDTH; i = i+1) begin
+					for (j=0; j < WIDTH; j = j + 1) begin
+
+						// This is not correct!!!
+
+						weight_mat[i][j] = weight_mat[i][j] - LEARNING_RATE * ((activation_func[temp[i]] * current_vec[j]) >>> 7);
+
+					end //endfor
+				end //endfor
+
+				state <= SENDMSG_BACK;
+			end
+	
+			if (state == SENDMSG_BACK)
+			begin
+				//out_vector is currently held at the correct value -- the delta vector		
+				
 				if (ack == 0)
 				begin
 					valid <= 1;
@@ -95,42 +267,11 @@ module MatMul_Module(clk, packed_7_9_in, mult, ack, valid, packed_7_9_out, reset
 					out_vector[6] <= 0;
 					out_vector[7] <= 0;
 					out_vector[8] <= 0;
-
-				end
-			end
-	
-		end
-	end
-
-	reg [4:0] i;	
-  	//do matrix multiply	
-	always @(posedge clk)
-	begin
-		if (state == MULT)
-			begin
-			state <= SENDMSG;
-			//this was pulled from stackoverflow
-			for (i = 0; i < WIDTH; i = i+1) begin:gen
-				//STATIC
-				//temp = current_vec[0] * weight_mat[0][i];
-				//temp = temp + current_vec[1]*weight_mat[1][i];
-				//temp = temp + current_vec[2]*weight_mat[2][i];
-				//temp = temp + current_vec[3]*weight_mat[3][i];
-				//temp = temp + current_vec[4]*weight_mat[4][i];
-				//temp = temp + current_vec[5]*weight_mat[5][i];
-				//temp = temp + current_vec[6]*weight_mat[6][i];
-				//temp = temp + current_vec[7]*weight_mat[7][i];
-				//temp = temp + current_vec[8]*weight_mat[8][i];
-
-				out_vector[i] <= current_vec[0]*weight_mat[i][0] + current_vec[1]*weight_mat[i][1] + current_vec[3]*weight_mat[i][3] + current_vec[4]*weight_mat[i][4] + current_vec[5]*weight_mat[i][5] + current_vec[6]*weight_mat[i][6] + current_vec[6]*weight_mat[i][6] + current_vec[6]*weight_mat[i][6] + current_vec[7]*weight_mat[i][7]; 
-
-				// Clamp the values to 255 max
-				//out_vector[i] = (temp > 255) ? 255 : temp ;
-
+				end			
 			end	
-			end
-		
-		end
 
-			
+		end // end else
+	end //END ALWAYS 
+	end
 endmodule
+
