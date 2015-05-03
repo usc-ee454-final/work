@@ -111,7 +111,7 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 				end
 			end
 
-			if (state == FORWARD)
+			else if (state == FORWARD)
 			begin
 				state <= SENDMSG_FORWARD;
 				for (i = 0; i < WIDTH; i = i+1) begin
@@ -136,13 +136,13 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 					end
 
 					// Apply activation function (we use a LUT)
-					out_vector[i] = activation_func[temp[i]];
+					out_vector[i] = activation_func[temp[i][6:0]];
 
 				end	//endfor
 
 			end //end if
 			
-			if (state == SENDMSG_FORWARD)
+			else if (state == SENDMSG_FORWARD)
 			begin
 				if (ack == 0)
 				begin
@@ -156,23 +156,22 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 			end
 			
 			// In this state we calculate f', which will be used in the backpropagation algorithm
-			if (state == CALC_F_PRIME)
+			else if (state == CALC_F_PRIME)
 			begin
-
-				for (i = 0; i < WIDTH; i = i+1) begin
-				begin
-					f_prime[i] <= activation_func_prime[temp[i]];
-				end
 
 				state <= BACKPROP_WAITING;		
+				for (i = 0; i < WIDTH; i = i+1) begin
+					f_prime[i] <= activation_func_prime[ (temp[i][6:0] )];
+				end
+				
 			end
 
-			if (state == BACKPROP_WAITING)
+			else if (state == BACKPROP_WAITING)
 			begin
-			
-				if (backprop) //then the backprop delta vector is ready
-				begin
-					state <= BACKPROP_CALC;
+					if (backprop == 1)	
+						begin
+						state <= BACKPROP_CALC;
+						end
 					current_vec[0] <= in_vector[0];	
 					current_vec[1] <= in_vector[1];	
 					current_vec[2] <= in_vector[2];	
@@ -182,13 +181,11 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 					current_vec[6] <= in_vector[6];	
 					current_vec[7] <= in_vector[7];	
 					current_vec[8] <= in_vector[8];	
-				end
+					
 			end
 
-			if (state == BACKPROP_CALC)
+			else if (state == BACKPROP_CALC)
 			begin
-				
-					
 					if (output_layer == 1)		
 					begin	
 						//delta_i = -(y_i - a_i)*f'(z_i)
@@ -231,7 +228,7 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 				state = UPDATE_WEIGHTS;
 			end
 	
-			if (state == UPDATE_WEIGHTS)
+			else if (state == UPDATE_WEIGHTS)
 			begin
 				for (i = 0; i < WIDTH; i = i+1) begin
 					for (j=0; j < WIDTH; j = j + 1) begin
@@ -246,7 +243,7 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 				state <= SENDMSG_BACK;
 			end
 	
-			if (state == SENDMSG_BACK)
+			else if (state == SENDMSG_BACK)
 			begin
 				//out_vector is currently held at the correct value -- the delta vector		
 				
@@ -272,6 +269,5 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 
 		end // end else
 	end //END ALWAYS 
-	end
 endmodule
 
