@@ -51,6 +51,11 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 	reg [4:0] i, j;
 	
 	reg signed [15:0] temp[8:0];	
+	reg signed [6:0] z [8:0];	
+	//DEBUG ONLY
+	reg signed [13:0] inter[8:0][8:0];
+	reg signed [6:0] inter_small[8:0][8:0];
+
 	reg signed [15:0] calc_int;
 
 	always @(posedge clk)
@@ -60,26 +65,46 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 			state <= IDLE;	
 			//initialize output vectors to 0	
 			valid <= 0;
+			z[0] <= 0;
+			z[1] <= 0;
+			z[2] <= 0;
+			z[3] <= 0;
+			z[4] <= 0;
+			z[5] <= 0;
+			z[6] <= 0;
+			z[7] <= 0;
+			z[8] <= 0;
+
 
 			for (x = 0; x < 128; x = x + 1)
 			begin
 				// fill in LUTs
 				// TODO: sigmoid calculations
-				activation_func[x] = x;
-				activation_func_prime[x] = 1;
+				if (x >	100) begin
+					activation_func[x] = 127; //fully negative
+				end
+				else if (x > 40 && x < 64) begin
+					activation_func[x] = 63; //fully positive
+				end
+				else begin	
+					activation_func[x] = x;
+				end
+
+					activation_func_prime[x] = 63; //i.e. 1
 
 			end	
+
 			for (x = 0; x < 9; x = x + 1)
 			begin
 				for (y=0; y < 9; y = y + 1)
 				begin
-					if (x + y % 3 == 0)
+					if (x + y > 13)
 					begin		
 						weight_mat[x][y] = 7'b0000101;
 					end
-					else if (x+y %3 == 1)
+					else if (x+y > 7)
 					begin		
-						weight_mat[x][y] = 7'b1000010;
+						weight_mat[x][y] = 7'b1111110;
 					end
 					else 
 					begin
@@ -112,6 +137,7 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 			else if (state == FORWARD)
 			begin
 				state <= SENDMSG_FORWARD;
+
 				for (i = 0; i < WIDTH; i = i+1) begin
 
 					//Compute this column of the matrix
@@ -120,21 +146,21 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 					temp[i] = 0;
 					for (j = 0; j < WIDTH; j = j + 1)
 						begin
-							temp[i] = temp[i] + ((weight_mat[i][j] * current_vec[j]) >>> 7 );
+							temp[i] = temp[i] + ((weight_mat[i][j] * current_vec[j]));
+							inter[i][j] = (weight_mat[i][j] * current_vec[j]);
+							inter_small[i][j] = (weight_mat[i][j] * current_vec[j]) >>> 7;
 						end
 
-					// Clamp the values to max
-					if (temp[i] > 127)
-					begin
-						temp[i] = 127;
-					end
-					if (temp[i] < -127)
-					begin
-						temp[i] = -127;
-					end
+					temp[i] = temp[i] >>> 7;
 
+					if (temp[i] > 63) begin
+						z[i] = 63;
+					end
+					else if (temp[i] < -64) begin
+						z[i] = -64;
+					end
 					// Apply activation function (we use a LUT)
-					out_vector[i] = activation_func[temp[i][6:0]];
+					out_vector[i] = activation_func[z[i]];
 
 				end	//endfor
 
@@ -159,7 +185,7 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 
 				state <= BACKPROP_WAITING;		
 				for (i = 0; i < WIDTH; i = i+1) begin
-					f_prime[i] <= activation_func_prime[ (temp[i][6:0] )];
+					f_prime[i] <= activation_func_prime[z[i]];
 				end
 				
 			end
@@ -207,19 +233,18 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 								calc_int = calc_int + ((weight_mat[i][j] * current_vec[j]) >>> 7);
 							end 
 
-							// Clamp the values to max (??)
 							calc_int = calc_int * f_prime[i] >>> 7;
 							
-							if (calc_int > 127)
+							if (calc_int > 63)
 							begin
-								calc_int = 127;
+								calc_int = 63;
 							end
-							if (calc_int < -127)
+							if (calc_int < -64)
 							begin
-								calc_int = -127;
+								calc_int = -64;
 							end
 
-							out_vector[i] = calc_int;
+							out_vector[i] = calc_int[6:0];
 						end
 					end
 				state = UPDATE_WEIGHTS;
@@ -233,7 +258,7 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 						// next layer
 						// temp := input to activation
 						// func for node i	
-						weight_mat[i][j] = weight_mat[i][j] - LEARNING_RATE * ((activation_func[temp[j][6:0]] * current_vec[i]) >>> 7);
+						weight_mat[i][j] = weight_mat[i][j] - LEARNING_RATE * ((activation_func[z[j]] * current_vec[i]) >>> 7);
 
 					end //endfor
 				end //endfor
