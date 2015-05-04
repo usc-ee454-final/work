@@ -159,6 +159,9 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 					else if (temp[i] < -64) begin
 						z[i] = -64;
 					end
+					else begin
+						z[i] = temp[i][6:0];
+					end
 					// Apply activation function (we use a LUT)
 					out_vector[i] = activation_func[z[i]];
 
