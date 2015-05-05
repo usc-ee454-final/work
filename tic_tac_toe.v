@@ -23,6 +23,10 @@ output reg [62:0] convert;
 //reg [8:0] P2;
 reg [3:0] i;
 
+reg[8:0] board;
+reg Draw;
+reg game_over;
+
 //outputs
 output P1Won, P2Won;
 output [3:0] I; 
@@ -33,13 +37,17 @@ output PlayerMoved;
 assign I = i; // not sure if this here is right.
 //assign PlayerMoved = BtnC && !P1[i] && !P2[i];
 
-assign P1Won = P1[0]&&P1[1]&&P1[2] || P1[2]&&P1[3]&&P1[4] || P1[4]&&P1[5]&&P1[6] || 
-										  P1[6]&&P1[7]&&P1[0] || P1[7]&&P1[8]&&P1[3] || P1[1]&&P1[8]&&P1[5] || 
-										  P1[0]&&P1[8]&&P1[4] || P1[6]&&P1[8]&&P1[2];
+assign P1Won = P1[0]&&P1[1]&&P1[2] || P1[2]&&P1[5]&&P1[8] || P1[8]&&P1[7]&&P1[6] || 
+										  P1[6]&&P1[3]&&P1[0] || P1[3]&&P1[4]&&P1[5] || P1[1]&&P1[4]&&P1[7] || 
+										  P1[0]&&P1[4]&&P1[8] || P1[6]&&P1[4]&&P1[2];
 										  
-assign P2Won = P2[0]&&P2[1]&&P2[2] || P2[2]&&P2[3]&&P2[4] || P2[4]&&P2[5]&&P2[6] || 
-										  P2[6]&&P2[7]&&P2[0] || P2[7]&&P2[8]&&P2[3] || P2[1]&&P2[8]&&P2[5] || 
-										  P2[0]&&P2[8]&&P2[4] || P2[6]&&P2[8]&&P2[2];
+assign P2Won = P2[0]&&P2[1]&&P2[2] || P2[2]&&P2[5]&&P2[8] || P2[8]&&P2[7]&&P2[6] || 
+										  P2[6]&&P2[3]&&P2[0] || P2[3]&&P2[4]&&P2[5] || P2[1]&&P2[4]&&P2[7] || 
+										  P2[0]&&P2[4]&&P2[7] || P2[6]&&P2[4]&&P2[2];
+										  
+assign Draw = !P1Won & !P2Won & board == 9'b111111111;
+
+assign game_over = P1Won | P2Won | Draw;
 
 //local variables
 
@@ -54,6 +62,10 @@ localparam
  PLAYING    = 3'b010,
  WON	    = 3'b100;
 
+always@(posedge game_over)
+begin
+	
+end
 
 always@(posedge Clk)
 begin
@@ -96,7 +108,7 @@ always @ (posedge Clk, posedge reset)
 			if (reset || restart)
 				begin
 					state <= INI;
-					i <= 8;
+					i <= 4;
 					P1 <= 9'b000000000;
 					P2 <= 9'b000000000;
 					convert <= 0;
@@ -118,53 +130,53 @@ always @ (posedge Clk, posedge reset)
 							case(i)
 								0: begin
 									if(BtnR==1) i <= 1;
-									if(BtnD==1) i <= 7;
+									if(BtnD==1) i <= 3;
 								end
 
 								1: begin
 									if(BtnR==1) i <= 2;
 									if(BtnL==1) i <= 0;
-									if(BtnD==1) i <= 8;
+									if(BtnD==1) i <= 4;
 								end
 
 								2: begin
 									if(BtnL==1) i <= 1;
-									if(BtnD==1) i <= 3;
+									if(BtnD==1) i <= 5;
 								end
 
 								3: begin
-									if(BtnL==1) i <= 8;
-									if(BtnU==1) i <= 2;
-									if(BtnD==1) i <= 4;
-								end
-
-								4: begin
-									if(BtnL==1) i <= 5;
-									if(BtnU==1) i <= 3;
-								end
-
-								5: begin
 									if(BtnR==1) i <= 4;
-									if(BtnL==1) i <= 6;
-									if(BtnU==1) i <= 8;
-								end
-
-								6: begin
-									if(BtnR==1) i <= 5;
-									if(BtnU==1) i <= 7;
-								end
-
-								7: begin
-									if(BtnR==1) i <= 8;
 									if(BtnU==1) i <= 0;
 									if(BtnD==1) i <= 6;
 								end
 
-								8: begin
-									if(BtnR==1) i <= 3;
-									if(BtnL==1) i <= 7;
+								4: begin
+									if(BtnR==1) i <= 5;
 									if(BtnU==1) i <= 1;
-									if(BtnD==1) i <= 5;
+									if(BtnL==1) i <= 3;
+									if(BtnD==1) i <= 7;
+								end
+
+								5: begin
+									if(BtnD==1) i <= 8;
+									if(BtnL==1) i <= 4;
+									if(BtnU==1) i <= 2;
+								end
+
+								6: begin
+									if(BtnR==1) i <= 7;
+									if(BtnU==1) i <= 3;
+								end
+
+								7: begin
+									if(BtnR==1) i <= 8;
+									if(BtnU==1) i <= 4;
+									if(BtnL==1) i <= 6;
+								end
+
+								8: begin
+									if(BtnL==1) i <= 7;
+									if(BtnU==1) i <= 5;
 								end
 							endcase
 							
@@ -173,7 +185,7 @@ always @ (posedge Clk, posedge reset)
 								if (P1[i] == 0 && P2[i] == 0)
 								begin
 									//i <= 8; // reset i to 8.
-
+									board[i] <= 1;
 									if (Player == 0)
 									begin
 										P1[i] <= 1;
