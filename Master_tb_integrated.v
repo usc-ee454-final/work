@@ -151,12 +151,12 @@ wire P1Won, P2Won, PlayerMoved;
 wire [3:0] I;
 reg reset_ttt;
 reg restart;
-wire[8:0] P1, P2;
+wire[8:0] P1, P2, board;
 wire[62:0] convert;
 integer x,z, correct_choice;
 
 tic_tac_toe boardA (.Clk(clk), .reset(reset_ttt), .restart(restart), .BtnL(BtnL), .BtnR(BtnR), .BtnU(BtnU), .BtnD(BtnD), .BtnC(BtnC), 
-			.P1Won(P1Won), .P2Won(P2Won), .I(I), .PlayerMoved(PlayerMoved), .P1(P1), .P2(P2), .convert(convert) );
+			.P1Won(P1Won), .P2Won(P2Won), .I(I), .PlayerMoved(PlayerMoved), .P1(P1), .P2(P2), .board(board), .convert(convert) );
 //END TICTACTOE
 
 initial

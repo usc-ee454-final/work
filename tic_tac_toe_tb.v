@@ -15,7 +15,7 @@ wire[8:0] P1, P2;
 wire[62:0] convert;
 
 tic_tac_toe boardA (.Clk(sysclk), .reset(reset), .restart(restart), .BtnL(BtnL), .BtnR(BtnR), .BtnU(BtnU), .BtnD(BtnD), .BtnC(BtnC), 
-			.P1Won(P1WonA), .P2Won(P2WonA), .I(Ia), .PlayerMoved(PM_a), .P1(P1), .P2(P2), .convert(convert) );
+			.P1Won(P1Won), .P2Won(P2Won), .I(Ia), .PlayerMoved(PM_a), .P1(P1), .P2(P2), .convert(convert) );
 
 initial begin sysclk = 0; end
 always begin #10; sysclk = ~ sysclk; end

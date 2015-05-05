@@ -2,7 +2,7 @@
 `timescale 1ns / 1ps
 // add Player, 
 module tic_tac_toe (Clk, reset, restart, BtnL, BtnR, BtnU, BtnD, BtnC, 
-							P1Won, P2Won, I, PlayerMoved, P1, P2, convert);
+							P1Won, P2Won, I, PlayerMoved, P1, P2, board, convert);
 //module tic_tac_toe (Clk, reset, u_BtnL, u_BtnR, u_BtnU, u_BtnD, u_BtnC, P1Won, P2Won, I, PlayerMoved);
 
 //inputs
@@ -23,7 +23,7 @@ output reg [62:0] convert;
 //reg [8:0] P2;
 reg [3:0] i;
 
-reg[8:0] board;
+output reg[8:0] board;
 wire Draw;
 wire game_over;
 
@@ -119,7 +119,7 @@ always @ (posedge Clk, posedge reset)
 					
 						INI: begin	
 						  Player <= 0;
-						  i <= 8;
+						  i <= 4;
 						  P1 <= 9'b000000000;
 						  P2 <= 9'b000000000;
 						  state <= PLAYING;
