@@ -32,7 +32,7 @@ reg reset_ttt;
 reg restart;
 wire[8:0] P1, P2;
 wire[62:0] convert;
-reg [3:0] x;
+reg [3:0] x, z;
 tic_tac_toe boardA (.Clk(clk), .reset(reset_ttt), .restart(restart), .BtnL(BtnL), .BtnR(BtnR), .BtnU(BtnU), .BtnD(BtnD), .BtnC(BtnC), 
 			.P1Won(P1Won), .P2Won(P2Won), .I(I), .PlayerMoved(PlayerMoved), .P1(P1), .P2(P2), .convert(convert) );
 //END TICTACTOE
@@ -99,15 +99,15 @@ initial
 						BtnL = 1; #CLK_PERIOD; BtnL = 0; #CLK_PERIOD;
 						BtnD = 1; #CLK_PERIOD; BtnD = 0; #CLK_PERIOD;
 					end
-					3: begin
+					7: begin
 						BtnL = 1; #CLK_PERIOD; BtnL = 0; #CLK_PERIOD;
 						BtnC = 1; #CLK_PERIOD; BtnC = 0; #CLK_PERIOD;
 						BtnR = 1; #CLK_PERIOD; BtnR = 0; #CLK_PERIOD;
 					end
-					4: begin
+					8: begin
 						BtnC = 1; #CLK_PERIOD; BtnC = 0; #CLK_PERIOD;
 					end
-					5: begin
+					3: begin
 						BtnR = 1; #CLK_PERIOD; BtnR = 0; #CLK_PERIOD;
 						BtnC = 1; #CLK_PERIOD; BtnC = 0; #CLK_PERIOD;
 						BtnL = 1; #CLK_PERIOD; BtnL = 0; #CLK_PERIOD;
@@ -119,12 +119,12 @@ initial
 						BtnR = 1; #CLK_PERIOD; BtnR = 0; #CLK_PERIOD;
 						BtnU = 1; #CLK_PERIOD; BtnU = 0; #CLK_PERIOD;
 					end
-					7: begin
+					5: begin
 						BtnD = 1; #CLK_PERIOD; BtnD = 0; #CLK_PERIOD;
 						BtnC = 1; #CLK_PERIOD; BtnC = 0; #CLK_PERIOD;
 						BtnU = 1; #CLK_PERIOD; BtnU = 0; #CLK_PERIOD;
 					end
-					8: begin
+					4: begin
 						BtnD = 1; #CLK_PERIOD; BtnD = 0; #CLK_PERIOD;
 						BtnR = 1; #CLK_PERIOD; BtnR = 0; #CLK_PERIOD;
 						BtnC = 1; #CLK_PERIOD; BtnC = 0; #CLK_PERIOD;
@@ -137,7 +137,8 @@ initial
 				// 2. Let NN make a move
 				//	- inject input flit to first router(game board state -> convert)
 				//	- wait for output flit on last router
-				
+			
+					
 
 				// 3. Transform output into game move (i.e. highest
 				// valued, possible value)
@@ -186,30 +187,29 @@ initial
 				end
 
 				// 4. Train NN
-				//
+				// 	- inject optimal game board state/correct move to last
+				// 	router (use max_i)
+				// 	- wait for output flit on first router (done
+				// 	learning on this example)
+				//			//
 				//x = $random(100) % 10;	
 				//while ( P1[x] || P2[x] ) //find an empty spot
 				//begin
 				//	x = $random(100) % 10;	  		
 				//end
-
-				x = 10;
-				while (x >= 9)
-					x = $random(100);	
-				while (P1[x] || P2[x] ) //find an empty spot
+				#CLK_PERIOD;
+				z = 10;
+				while (z >= 9)
+					z = $random(100);	
+				while (P1[z] || P2[z] ) //find an empty spot
 				begin
-					while (x >= 9)
-						x = $random(100);	
+					while (z >= 9)
+						z = $random(100);	
 						
 				end
 
-				$display("Learning a random move -- %d", x);
+				$display("Learning a random move -- %d", z);
 
-				// 	- inject optimal game board state/correct move to last
-				// 	router (use max_i)
-				// 	- wait for output flit on first router (done
-				// 	learning on this example)
-				//
 			end
 		end //end for
 	
