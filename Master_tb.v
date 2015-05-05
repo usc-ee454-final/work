@@ -6,7 +6,7 @@ module Master_tb;
 
 parameter CLK_PERIOD = 10, NUM_TRAINING_EXAMPLES = 100, NUM_TESTS = 10;
 
-integer test_num, player1_total, player2_total, x, y, max_i, rank_solution;
+integer test_num, player1_total, player2_total,  y, max_i, rank_solution;
 integer start, finish;
 integer file_in, file_out, r;
 wire player1_win, player2_win;
@@ -32,9 +32,9 @@ reg reset_ttt;
 reg restart;
 wire[8:0] P1, P2;
 wire[62:0] convert;
-
+reg [3:0] x;
 tic_tac_toe boardA (.Clk(clk), .reset(reset_ttt), .restart(restart), .BtnL(BtnL), .BtnR(BtnR), .BtnU(BtnU), .BtnD(BtnD), .BtnC(BtnC), 
-			.P1Won(P1WonA), .P2Won(P2WonA), .I(Ia), .PlayerMoved(PM_a), .P1(P1), .P2(P2), .convert(convert) );
+			.P1Won(P1Won), .P2Won(P2Won), .I(I), .PlayerMoved(PlayerMoved), .P1(P1), .P2(P2), .convert(convert) );
 //END TICTACTOE
 
 initial
@@ -65,13 +65,18 @@ initial
 				// while neither player has won
 			begin
 				#CLK_PERIOD;
-				$stop;
+
 				// 1. Let computer make a move (randomly)
-				x = $random(100) % 10;	
-				while ( P1[x] || P2[x] ) //find an empty spot
+				x = 10;
+				while (x >= 9)
+					x = $random(100);	
+				while (P1[x] || P2[x] ) //find an empty spot
 				begin
-					x = $random(100) % 10;	  		
+					while (x >= 9)
+						x = $random(100);	
+						
 				end
+
 				$display("Computer selected a move: %d", x);
 
 				case (x)
@@ -132,6 +137,7 @@ initial
 				// 2. Let NN make a move
 				//	- inject input flit to first router(game board state -> convert)
 				//	- wait for output flit on last router
+				
 
 				// 3. Transform output into game move (i.e. highest
 				// valued, possible value)
@@ -181,10 +187,20 @@ initial
 
 				// 4. Train NN
 				//
-				x = $random(100) % 10;	
-				while ( P1[x] || P2[x] ) //find an empty spot
+				//x = $random(100) % 10;	
+				//while ( P1[x] || P2[x] ) //find an empty spot
+				//begin
+				//	x = $random(100) % 10;	  		
+				//end
+
+				x = 10;
+				while (x >= 9)
+					x = $random(100);	
+				while (P1[x] || P2[x] ) //find an empty spot
 				begin
-					x = $random(100) % 10;	  		
+					while (x >= 9)
+						x = $random(100);	
+						
 				end
 
 				$display("Learning a random move -- %d", x);
