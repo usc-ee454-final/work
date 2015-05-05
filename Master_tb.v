@@ -68,11 +68,9 @@ initial
 
 				// 1. Let computer make a move (randomly)
 				x = 10;
-				while (x >= 9) begin
+				while (x >= 9)
 					x = $random(100);	
-				end
-
-				while (P1[x] | P2[x] ) //find an empty spot
+				while (P1[x] || P2[x] ) //find an empty spot
 				begin
 					while (x >= 9)
 						x = $random(100);	
@@ -101,15 +99,15 @@ initial
 						BtnL = 1; #CLK_PERIOD; BtnL = 0; #CLK_PERIOD;
 						BtnD = 1; #CLK_PERIOD; BtnD = 0; #CLK_PERIOD;
 					end
-					3: begin
+					7: begin
 						BtnL = 1; #CLK_PERIOD; BtnL = 0; #CLK_PERIOD;
 						BtnC = 1; #CLK_PERIOD; BtnC = 0; #CLK_PERIOD;
 						BtnR = 1; #CLK_PERIOD; BtnR = 0; #CLK_PERIOD;
 					end
-					4: begin
+					8: begin
 						BtnC = 1; #CLK_PERIOD; BtnC = 0; #CLK_PERIOD;
 					end
-					5: begin
+					3: begin
 						BtnR = 1; #CLK_PERIOD; BtnR = 0; #CLK_PERIOD;
 						BtnC = 1; #CLK_PERIOD; BtnC = 0; #CLK_PERIOD;
 						BtnL = 1; #CLK_PERIOD; BtnL = 0; #CLK_PERIOD;
@@ -121,12 +119,12 @@ initial
 						BtnR = 1; #CLK_PERIOD; BtnR = 0; #CLK_PERIOD;
 						BtnU = 1; #CLK_PERIOD; BtnU = 0; #CLK_PERIOD;
 					end
-					7: begin
+					5: begin
 						BtnD = 1; #CLK_PERIOD; BtnD = 0; #CLK_PERIOD;
 						BtnC = 1; #CLK_PERIOD; BtnC = 0; #CLK_PERIOD;
 						BtnU = 1; #CLK_PERIOD; BtnU = 0; #CLK_PERIOD;
 					end
-					8: begin
+					4: begin
 						BtnD = 1; #CLK_PERIOD; BtnD = 0; #CLK_PERIOD;
 						BtnR = 1; #CLK_PERIOD; BtnR = 0; #CLK_PERIOD;
 						BtnC = 1; #CLK_PERIOD; BtnC = 0; #CLK_PERIOD;
@@ -189,10 +187,8 @@ initial
 				end
 
 				// 4. Train NN
-				//
 				// 	- inject optimal game board state/correct move to last
 				// 	router (use max_i)
-				//
 				// 	- wait for output flit on first router (done
 				// 	learning on this example)
 				//			//
