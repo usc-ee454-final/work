@@ -24,8 +24,8 @@ output reg [62:0] convert;
 reg [3:0] i;
 
 reg[8:0] board;
-reg Draw;
-reg game_over;
+wire Draw;
+wire game_over;
 
 //outputs
 output P1Won, P2Won;

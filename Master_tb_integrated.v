@@ -276,14 +276,14 @@ initial
 
 				//	- wait for output flit on last router
 							
-			    while (send_flit[3] != 1'b1)
-				#(ClkPeriod);
+			    while (flit_out[3][flit_port_width-1] != 1'b1)
+				#(1);
 
 			    //Now flit is ready at end
-			      send_flit[3] <= 1'b0;
-			      flit_in[3] <= 'b0; // valid bit
+			      send_flit[3] = 1'b0;
+			      flit_in[3] = 'b0; // valid bit
 
-			       hypothesis = flit_out[3][flit_port_width-2:0];
+			       hypothesis = flit_out[3][`FLIT_DATA_WIDTH-2:0];
 
 			   	#(ClkPeriod); 
 				// 3. Transform output into game move (i.e. highest
