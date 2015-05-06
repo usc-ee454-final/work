@@ -39,6 +39,7 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 
 	// This reg holds the weights from this layer's nodes to the next layer's nodes.
 	reg signed [6:0] weight_mat [8:0][8:0];
+	reg signed [6:0] bias_vec [8:0];
 
 	reg signed [6:0] activation_func [127:0];
 	reg signed [6:0] activation_func_prime [127:0];
@@ -96,6 +97,7 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 
 			for (x = 0; x < 9; x = x + 1)
 			begin
+				bias_vec[x] = x-4;
 				for (y=0; y < 9; y = y + 1)
 				begin
 					if (x + y > 13)
@@ -256,6 +258,7 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 			else if (state == UPDATE_WEIGHTS)
 			begin
 				for (i = 0; i < WIDTH; i = i+1) begin
+					bias_vec[i] = bias_vec[i] - LEARNING_RATE * (current_vec[i]);
 					for (j=0; j < WIDTH; j = j + 1) begin
 						// current_vec := delta from
 						// next layer

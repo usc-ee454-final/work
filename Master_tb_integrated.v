@@ -2,7 +2,7 @@
 
 `include "connect_parameters.v"
 
-module Master_tb;
+module Master_tb_integrated;
 // This is the master testbench used to test and train our NNoC
 
 //ROUTER CODE HERE
@@ -14,7 +14,6 @@ module Master_tb;
   localparam dest_bits = $clog2(`NUM_USER_RECV_PORTS);
   localparam flit_port_width = 2 /*valid and tail bits*/+ `FLIT_DATA_WIDTH + dest_bits + vc_bits;
   localparam credit_port_width = 1 + vc_bits; // 1 valid bit
-  localparam test_cycles = 60;
 
   reg Clk;
   reg Rst_n;
@@ -129,7 +128,7 @@ module Master_tb;
 
 //Rest of Master TB
 
-parameter CLK_PERIOD = 10, NUM_TRAINING_EXAMPLES = 100, NUM_TESTS = 10;
+parameter NUM_TRAINING_EXAMPLES = 100, NUM_TESTS = 10;
 
 integer test_num, player1_total, player2_total,  y, max_i, rank_solution;
 integer start, finish;
@@ -154,7 +153,7 @@ reg reset_ttt;
 reg restart;
 wire[8:0] P1, P2;
 wire[62:0] convert;
-integer x,z, i, correct_choice;
+integer x,z, correct_choice;
 
 tic_tac_toe boardA (.Clk(clk), .reset(reset_ttt), .restart(restart), .BtnL(BtnL), .BtnR(BtnR), .BtnU(BtnU), .BtnD(BtnD), .BtnC(BtnC), 
 			.P1Won(P1Won), .P2Won(P2Won), .I(I), .PlayerMoved(PlayerMoved), .P1(P1), .P2(P2), .convert(convert) );
@@ -231,7 +230,6 @@ initial
 					5: begin
 						BtnR = 1; #ClkPeriod; BtnR = 0; #ClkPeriod;
 						BtnC = 1; #ClkPeriod; BtnC = 0; #ClkPeriod;
-						BtnL = 1; #ClkPeriod; BtnL = 0; #ClkPeriod;
 					end
 					6: begin
 						BtnD = 1; #ClkPeriod; BtnD = 0; #ClkPeriod;
