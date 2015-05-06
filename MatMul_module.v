@@ -163,7 +163,7 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 						z[i] = temp[i][6:0];
 					end
 					// Apply activation function (we use a LUT)
-					out_vector[i] = activation_func[z[i]];
+					out_vector[i] = activation_func[z[i]+64];
 
 				end	//endfor
 
@@ -188,7 +188,7 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 
 				state <= BACKPROP_WAITING;		
 				for (i = 0; i < WIDTH; i = i+1) begin
-					f_prime[i] <= activation_func_prime[z[i]];
+					f_prime[i] <= activation_func_prime[z[i]+64];
 				end
 				
 			end
@@ -261,7 +261,7 @@ module MatMul_Module(clk, packed_7_9_in, mult, backprop, ack, valid, packed_7_9_
 						// next layer
 						// temp := input to activation
 						// func for node i	
-						weight_mat[i][j] = weight_mat[i][j] - LEARNING_RATE * ((activation_func[z[j]] * current_vec[i]) >>> 7);
+						weight_mat[i][j] = weight_mat[i][j] - LEARNING_RATE * ((activation_func[z[j]+64] * current_vec[i]) >>> 7);
 
 					end //endfor
 				end //endfor
