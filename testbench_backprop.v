@@ -48,7 +48,7 @@
 `include "connect_parameters.v"
 
 
-module CONNECT_testbench_sample();
+module testbench_backprop();
   parameter HalfClkPeriod = 5;
   localparam ClkPeriod = 2*HalfClkPeriod;
 
@@ -57,7 +57,7 @@ module CONNECT_testbench_sample();
   localparam dest_bits = $clog2(`NUM_USER_RECV_PORTS);
   localparam flit_port_width = 2 /*valid and tail bits*/+ `FLIT_DATA_WIDTH + dest_bits + vc_bits;
   localparam credit_port_width = 1 + vc_bits; // 1 valid bit
-  localparam test_cycles = 50;
+  localparam test_cycles = 60;
 
   reg Clk;
   reg Rst_n;
@@ -79,7 +79,7 @@ module CONNECT_testbench_sample();
   // packet fields
   reg [dest_bits-1:0] dest;
   reg [vc_bits-1:0]   vc;
-  reg [`FLIT_DATA_WIDTH-1:0] data;
+  reg [`FLIT_DATA_WIDTH-2:0] data;
 
   // Generate Clock
   initial Clk = 0;
@@ -102,7 +102,7 @@ module CONNECT_testbench_sample();
     dest = 1;
     vc = 0;
     data = 'b0111111;
-    flit_in[0] = {1'b1 /*valid*/, 1'b1 /*tail*/, dest, vc, data};
+    flit_in[0] = {1'b1 /*valid*/, 1'b1 /*tail*/, dest, vc, 1'b0, data};
     $display("@%3d: Injecting flit %x into send port %0d", cycle, flit_in[0], 0);
     $display("@%3d: Sending flit %x to router %0d", cycle, flit_in[0], dest);
 
@@ -116,13 +116,22 @@ module CONNECT_testbench_sample();
   // Monitor arriving flits
   always @ (posedge Clk) begin
     cycle <= cycle + 1;
-    for(i = 0; i < `NUM_USER_RECV_PORTS; i = i + 1) begin
-      if(flit_out[i][flit_port_width-1]) begin // valid flit
-        if (i == 1 || i == 2) begin
-          $display("Moving this flit into multiplier:");
-        end
-        $display("@%3d: Ejecting flit %x at receive port %0d", cycle, flit_out[i], i);
-      end
+
+    if (send_flit[3] == 1'b1)
+    begin
+      send_flit[3] <= 1'b0;
+      flit_in[3] <= 'b0; // valid bit
+    end
+
+    if (flit_out[3][flit_port_width-1])
+    begin
+      // send a single flit packet backprop
+      send_flit[3] = 1'b1;
+      dest = 2;
+      vc = 0;
+      data = 'b0111111;
+      flit_in[3] = {1'b1 /*valid*/, 1'b1 /*tail*/, dest, vc, 1'b1, data};
+      $display("@%3d: Sending backprop flit %x to router %0d", cycle, flit_in[3], dest);
     end
 
     // terminate simulation
@@ -137,8 +146,8 @@ module CONNECT_testbench_sample();
   wire mult1_recv_flit, mult1_send_flit, mult2_recv_flit, mult2_send_flit;
   wire [flit_port_width-1:0] mult1_flit_in, mult2_flit_in;
   wire [flit_port_width-1:0] mult1_flit_out, mult2_flit_out;
-  layer mult1(Clk, ~Rst_n, cycle, mult1_recv_flit, mult1_flit_in, 2, mult1_send_flit, mult1_flit_out);
-  layer mult2(Clk, ~Rst_n, cycle, mult2_recv_flit, mult2_flit_in, 3, mult2_send_flit, mult2_flit_out);
+  layer mult1(Clk, ~Rst_n, cycle, mult1_recv_flit, mult1_flit_in, 2, 0, mult1_send_flit, mult1_flit_out);
+  layer mult2(Clk, ~Rst_n, cycle, mult2_recv_flit, mult2_flit_in, 3, 1, mult2_send_flit, mult2_flit_out);
 
   // Instantiate CONNECT network
   mkNetwork dut
@@ -165,6 +174,12 @@ module CONNECT_testbench_sample();
    ,.EN_send_ports_2_getCredits(1'b1) // drain credits
    ,.send_ports_2_getCredits(credit_out[2])
 
+
+   ,.send_ports_3_putFlit_flit_in(flit_in[3])
+   ,.EN_send_ports_3_putFlit(send_flit[3])
+
+   ,.EN_send_ports_3_getCredits(1'b1) // drain credits
+   ,.send_ports_3_getCredits(credit_out[3])
    // add rest of send ports here
    //
 
@@ -178,8 +193,15 @@ module CONNECT_testbench_sample();
    ,.EN_recv_ports_2_getFlit(1'b1) // drain flits
    ,.recv_ports_2_getFlit(mult2_flit_in)
 
-   ,.recv_ports_2_putCredits_cr_in(credit_in[1])
-   ,.EN_recv_ports_2_putCredits(send_credit[1])
+   ,.recv_ports_2_putCredits_cr_in(credit_in[2])
+   ,.EN_recv_ports_2_putCredits(send_credit[2])
+
+
+   ,.EN_recv_ports_3_getFlit(1'b1) // drain flits
+   ,.recv_ports_3_getFlit(flit_out[3])
+
+   ,.recv_ports_3_putCredits_cr_in(credit_in[3])
+   ,.EN_recv_ports_3_putCredits(send_credit[3])
 
    // add rest of receive ports here
    // 
