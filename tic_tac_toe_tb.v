@@ -18,7 +18,7 @@ tic_tac_toe boardA (.Clk(sysclk), .reset(reset), .restart(restart), .BtnL(BtnL),
 			.P1Won(P1Won), .P2Won(P2Won), .I(Ia), .PlayerMoved(PM_a), .P1(P1), .P2(P2), .convert(convert) );
 
 initial begin sysclk = 0; end
-always begin #10; sysclk = ~ sysclk; end
+always begin #100; sysclk = ~ sysclk; end
 
 
 initial begin
@@ -29,8 +29,8 @@ reset = 1;
 reset = 0;
 
 BtnD = 0; BtnC = 0; BtnL = 0; BtnR = 0; BtnU = 0;
-#50;
-BtnC = 1; // 8 player 1
+#225;
+BtnC = 1; // 4 player 1
 #200;
 BtnC = 0;
 BtnR = 1;
@@ -43,31 +43,40 @@ BtnU = 0;
 BtnC = 1; // 2 player 2
 #200;
 BtnC = 0;
-BtnU = 1;
+BtnL = 1;
 #200;
-BtnU = 0;
+BtnL = 0;
+BtnC = 1; // 1 player 1
 #200;
-BtnC = 1; // 1 player 1 
+BtnC = 0;
+BtnL = 1;
+#200;
+BtnL = 0;
+BtnC = 1; // 0 player 2 
 #200;
 BtnC = 0;
 BtnR = 1;
 #200;
 BtnR = 0;
-//BtnD = 1;
+BtnD = 1;
+#400;
+BtnD = 0;
+BtnC = 1; // 7 player 1, player 1 wins
 #200;
 //BtnD = 0;
-BtnC = 1; // 3 player 2
-#200;
 BtnC = 0;
+//BtnC = 1; // 3 player 2
+//#200;
+//BtnC = 0;
 //BtnL = 1;
 //#200;
 //BtnL = 0;
-BtnD = 1;
-#200;
-BtnD = 0;
-BtnC = 1; // 5 player 1 
-#200;
-BtnC = 0;
+//BtnD = 1;
+//#200;
+//BtnD = 0;
+//BtnC = 1; // 5 player 1 
+//#200;
+//BtnC = 0;
 // player 1 wins!
 
 #400;
